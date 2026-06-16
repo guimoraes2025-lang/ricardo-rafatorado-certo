@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Controle de Gastos</title>
+
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<button id="theme-toggle">🌙</button>
+
+<div class="container">
+    <h1>Meu Controle de Gastos 💰</h1>
+
+    <form
+            hx-post="/lancamentos"
+            hx-target="#lista-lancamentos"
+            hx-swap="innerHTML"
+            hx-on::after-request="this.reset()">
+        <input type="text" name="descricao" placeholder="Descrição" required style="flex-grow: 2;">
+        <input type="number" step="0.01" name="valor" placeholder="Valor" required style="flex-grow: 1;">
+        <select name="tipo" required style="flex-grow: 1;">
+            <option th:each="tipoOpt : ${tipos}" th:value="${tipoOpt}" th:text="${tipoOpt}"></option>
+        </select>
+        <button type="submit" class="add-btn" style="flex-grow: 1;">Adicionar</button>
+    </form>
+
+    <div id="lista-lancamentos">
+        <div th:fragment="lista-lancamentos">
+            <!-- Card de Saldo -->
+            <div class="saldo-container">
+                <div class="saldo-card" th:classappend="${saldo >= 0 ? 'positivo' : 'negativo'}">
+                    <h3>Saldo Atual</h3>
+                    <p th:text="|R$ ${#numbers.formatDecimal(saldo, 1, 'POINT', 2, 'COMMA')}|"></p>
+                </div>
+            </div>
+            ...
+
+
+            <div th:each="lancamento : ${lancamentos}" th:id="'lancamento-' + ${lancamento.id}" class="list-item">
+                <div class="col-desc" th:text="${lancamento.descricao}"></div>
+                <div class="col-valor valor" th:text="|R$ ${#numbers.formatDecimal(lancamento.valor, 1, 'POINT', 2, 'COMMA')}|"
+                     th:classappend="${lancamento.tipo.name() == 'DESPESA' ? 'despesa' : 'receita'}">
+                </div>
+                <div class="col-data" th:text="${#temporals.format(lancamento.data, 'dd/MM/yyyy')}"></div>
+                <div class="col-tipo" th:text="${lancamento.tipo.name()}"></div>
+                <div class="col-acoes">
+                    <div class="actions-wrapper">
+                        <button class="action-btn edit-btn"
+                                th:hx-get="@{/lancamentos/editar/{id}(id=${lancamento.id})}"
+                                th:hx-target="'#lancamento-' + ${lancamento.id}"
+                                hx-swap="outerHTML">
+                            Alterar
+                        </button>
+                        <button class="action-btn delete-btn"
+                                th:hx-delete="@{/lancamentos/{id}(id=${lancamento.id})}"
+                                hx-target="#lista-lancamentos"
+                                hx-swap="innerHTML"
+                                hx-confirm="Tem certeza que deseja excluir?">
+                            Excluir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+   Guilherme Moraes(c)2026
+</div>
+
+<div style="display: none;">
+    <th:block th:fragment="form-edicao">
+        <div th:id="'lancamento-' + ${lancamentoParaEditar.id}" class="edit-form-row">
+            <div class="col-desc">
+                <input type="text" name="descricao" th:value="${lancamentoParaEditar.descricao}">
+            </div>
+            <div class="col-valor">
+                <input type="number" step="0.01" name="valor" th:value="${lancamentoParaEditar.valor}">
+            </div>
+            <div class="col-data">
+                <input type="date" name="data" th:value="${#temporals.format(lancamentoParaEditar.data, 'yyyy-MM-dd')}">
+            </div>
+            <div class="col-tipo">
+                <select name="tipo">
+                    <option th:each="tipoOpt : ${tipos}"
+                            th:value="${tipoOpt}"
+                            th:text="${tipoOpt}"
+                            th:selected="${tipoOpt == lancamentoParaEditar.tipo}"></option>
+                </select>
+            </div>
+            <div class="col-acoes">
+                <div class="actions-wrapper">
+                    <button class="action-btn save-btn"
+                            th:hx-put="@{/lancamentos/{id}(id=${lancamentoParaEditar.id})}"
+                            hx-target="#lista-lancamentos"
+                            hx-swap="innerHTML"
+                            hx-include="closest .edit-form-row">
+                        Salvar
+                    </button>
+                    <button class="action-btn cancel-btn"
+                            th:hx-get="@{/}"
+                            hx-target="#lista-lancamentos"
+                            hx-swap="innerHTML">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </th:block>
+</div>
+
+<script>
+    const themeToggle = document.getElementById('theme-toggle');
+    const html = document.documentElement;
+
+    themeToggle.addEventListener('click', () => {
+        if (html.classList.contains('dark')) {
+            html.classList.remove('dark');
+            html.classList.add('light');
+            themeToggle.textContent = '🌙';
+        } else {
+            html.classList.remove('light');
+            html.classList.add('dark');
+            themeToggle.textContent = '☀️';
+        }
+    });
+</script>
+
+</body>
+</html>
